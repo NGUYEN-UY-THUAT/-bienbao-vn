@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Kết quả huấn luyện / chạy thử sinh ra tự động
+runs/
+Training/*.pt
+
+# Ảnh/video test và kết quả của người dùng (giữ lại thư mục rỗng)
+test_inputs/*
+results/*
+!test_inputs/.gitkeep
+!results/.gitkeep
+
+# File ndjson chứa link ảnh có chữ ký tạm thời (hết hạn), tự export lại từ Ultralytics Platform
+*.ndjson

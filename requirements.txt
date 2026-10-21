@@ -1,0 +1,16 @@
+# Đã chạy thử với Python 3.10
+# Lưu ý: muốn train bằng GPU NVIDIA, cài torch/torchvision bản CUDA trước:
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124
+torch
+torchvision
+ultralytics
+opencv-python
+numpy
+PyYAML
+tqdm
+scikit-learn
+seaborn
+matplotlib
+ipykernel
+nbconvert
+notebook
