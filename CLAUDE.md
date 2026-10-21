@@ -24,12 +24,12 @@ Run from the repo root with `.venv/bin/python` (or any env with `requirements.tx
 
 ## Shared code
 
-- `Utils/models.py`: `CustomCNN`, `ResNet18` (hand-written, from scratch, 64x64), `EfficientNetB0Classifier` (kept, currently unused), `build_model`, `save_checkpoint`, `load_classifier`. Checkpoints are dicts `{kind, class_names, state_dict}`. All models take `(N,3,64,64)` RGB in [0,1] and return logits.
+- `Utils/models.py`: `CustomCNN` (first Conv 7x7 required by the course; `_conv_block(k=7)`), `ResNet18` (hand-written, from scratch, 64x64, 7x7 stride-2 stem, no MaxPool), `EfficientNetB0Classifier` (kept, currently unused), `build_model`, `save_checkpoint`, `load_classifier`. Checkpoints are dicts `{kind, class_names, state_dict}`. All models take `(N,3,64,64)` RGB in [0,1] and return logits.
 - `Utils/helper_functions.py`: path helpers, `resize_with_padding`, drawing, bbox utils, YAML I/O. Inference must use `resize_with_padding` (matches the padded training crops), not `preprocess_for_cnn` (plain resize). `TRAFFIC_SIGN_CLASSES`, `YOLO_CLASS_MAPPING`, `get_class_name/color` are leftovers from the old 7-class Zalo project and are unused.
 
 ## Results (for reference)
 
-YOLOv8n 10 epochs, test mAP50 0.940 (mAP50-95 0.776). Classifiers on GT crops, test acc: CNN 99.65%, ResNet-18 99.56%, ensemble 99.73%. Crop accuracy is optimistic: it ignores detector misses and possible near-duplicate train/test images (ndjson looks like a Roboflow export).
+YOLOv8n 10 epochs, test mAP50 0.940 (mAP50-95 0.776). Classifiers on GT crops, test acc: CNN 99.78%, ResNet-18 99.73%, ensemble 99.82% (first conv 7x7 in both). Crop accuracy is optimistic: it ignores detector misses and possible near-duplicate train/test images (ndjson looks like a Roboflow export).
 
 ## Notes
 

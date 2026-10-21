@@ -14,9 +14,9 @@ Dữ liệu: `classification-of-traffic-signs-vn.ndjson` (~24.5 nghìn ảnh 512
 | Thành phần | Chỉ số (tập test) |
 |---|---|
 | YOLOv8n (10 epoch) | mAP50 **0,940** · mAP50-95 0,776 |
-| Custom CNN (VGG-style, 2,5 triệu tham số) | accuracy **99,65%** |
-| ResNet-18 (tự cài, 11,2 triệu tham số) | accuracy **99,56%** |
-| Ensemble CNN + ResNet-18 | accuracy **99,73%** |
+| Custom CNN (VGG-style, Conv đầu 7×7, 2,5 triệu tham số) | accuracy **99,78%** |
+| ResNet-18 (tự cài, stem Conv 7×7, 11,2 triệu tham số) | accuracy **99,73%** |
+| Ensemble CNN + ResNet-18 | accuracy **99,82%** |
 
 > Accuracy của CNN đo trên crop cắt theo nhãn gốc, nên cao hơn chất lượng thực của cả pipeline (còn phụ thuộc YOLO phát hiện đủ biển). YOLO có recall thấp nhất ở nhóm `R` (0,82).
 
@@ -83,7 +83,7 @@ python Data_Pipeline/build_cnn_crops.py
 rm -r ../Data_Processed/cnn_dataset/*/4_IE
 # 3. YOLOv8n (~7 phút/epoch trên GTX 1650)
 python Training/train_yolo.py --epochs 10
-# 4. CNN + ResNet-18 (~1 giờ trên GTX 1650)
+# 4. CNN + ResNet-18 (~1,5 giờ trên GTX 1650)
 cd Training && MPLBACKEND=Agg python -m nbconvert --to notebook --execute cnn-detectsign.ipynb
 # 5. Chép model vào Inference/
 cp ../runs/traffic_sign/weights/best.pt ../Inference/best.pt
@@ -95,8 +95,8 @@ Notebook cũng chạy được trên Kaggle/Colab: đặt biến môi trường 
 ## 🧠 Kiến trúc
 
 - **YOLOv8n:** phát hiện biển, train 512×512, tắt lật ngang (lật làm đổi nghĩa biển rẽ trái/phải).
-- **Custom CNN:** 4 khối Conv3×3 + BatchNorm + MaxPool, Dropout, Linear 512 → số lớp.
-- **ResNet-18:** tự cài từng BasicBlock (shortcut), chỉnh cho ảnh 64×64, train từ đầu.
+- **Custom CNN:** lớp Conv đầu tiên kernel **7×7**, sau đó 3 khối Conv3×3; mỗi khối có BatchNorm + MaxPool, Dropout, Linear 512 → số lớp.
+- **ResNet-18:** tự cài từng BasicBlock (shortcut), stem **Conv 7×7 stride 2** như bản gốc (bỏ MaxPool vì ảnh chỉ 64×64), train từ đầu.
 - Tiền xử lý crop: resize giữ tỉ lệ + padding đen về 64×64, RGB, chuẩn hoá [0, 1]. Inference dùng đúng cách này.
 - Loss có class weights (nghịch đảo căn bậc hai tần suất) để bù lớp ít mẫu (`S`, `I`).
 

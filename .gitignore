@@ -15,3 +15,7 @@ results/*
 
 # File ndjson chứa link ảnh có chữ ký tạm thời (hết hạn), tự export lại từ Ultralytics Platform
 *.ndjson
+
+# Tự sinh khi chạy training
+Training/yolov8n.pt
+Training/runs/

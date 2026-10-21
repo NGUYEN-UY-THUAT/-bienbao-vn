@@ -8,6 +8,7 @@ opencv-python
 numpy
 PyYAML
 tqdm
+imageio-ffmpeg
 scikit-learn
 seaborn
 matplotlib

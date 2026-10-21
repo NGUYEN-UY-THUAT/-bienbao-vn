@@ -15,9 +15,9 @@ from torchvision.models import efficientnet_b0, EfficientNet_B0_Weights
 IMG_SIZE = 64
 
 
-def _conv_block(cin: int, cout: int, drop: float) -> nn.Sequential:
+def _conv_block(cin: int, cout: int, drop: float, k: int = 3) -> nn.Sequential:
     layers = [
-        nn.Conv2d(cin, cout, 3, padding=1),
+        nn.Conv2d(cin, cout, k, padding=k // 2),
         nn.ReLU(inplace=True),
         nn.BatchNorm2d(cout),
         nn.MaxPool2d(2),
@@ -28,12 +28,15 @@ def _conv_block(cin: int, cout: int, drop: float) -> nn.Sequential:
 
 
 class CustomCNN(nn.Module):
-    """CNN tự xây (4 khối Conv + BN + MaxPool), input 64x64."""
+    """CNN tự xây (4 khối Conv + BN + MaxPool), input 64x64.
+
+    Lớp Conv đầu tiên dùng kernel 7x7 (yêu cầu đề tài); các lớp sau dùng 3x3.
+    """
 
     def __init__(self, num_classes: int):
         super().__init__()
         self.features = nn.Sequential(
-            _conv_block(3, 32, 0.0),      # 32x32
+            _conv_block(3, 32, 0.0, k=7),  # Conv 7x7 đầu tiên -> 32x32
             _conv_block(32, 64, 0.2),     # 16x16
             _conv_block(64, 128, 0.3),    # 8x8
             _conv_block(128, 256, 0.3),   # 4x4
@@ -73,14 +76,14 @@ class BasicBlock(nn.Module):
 class ResNet18(nn.Module):
     """ResNet-18 tự cài đặt, chỉnh cho ảnh nhỏ 64x64 (train từ đầu, không pretrained).
 
-    Stem: Conv 3x3 stride 2 (thay Conv 7x7 + MaxPool của bản ImageNet).
+    Stem: Conv 7x7 stride 2 (như ResNet gốc), bỏ MaxPool vì ảnh đầu vào chỉ 64x64.
     4 stage x 2 BasicBlock: 64 -> 128 -> 256 -> 512 kênh; feature map 32 -> 16 -> 8 -> 4.
     """
 
     def __init__(self, num_classes: int, dropout: float = 0.3):
         super().__init__()
         self.stem = nn.Sequential(
-            nn.Conv2d(3, 64, 3, 2, 1, bias=False), nn.BatchNorm2d(64), nn.ReLU(inplace=True))
+            nn.Conv2d(3, 64, 7, 2, 3, bias=False), nn.BatchNorm2d(64), nn.ReLU(inplace=True))
         cfg = [(64, 64, 1), (64, 128, 2), (128, 256, 2), (256, 512, 2)]
         self.layers = nn.Sequential(*[
             nn.Sequential(BasicBlock(cin, cout, stride), BasicBlock(cout, cout, 1))

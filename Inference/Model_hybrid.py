@@ -1,18 +1,7 @@
-"""
-Hybrid inference: YOLOv8 phát hiện biển báo -> CNN (và/hoặc ResNet-18, PyTorch) phân loại.
 
-Cách dùng nhanh: bỏ ảnh/video vào test_inputs/ rồi chạy `python Model_hybrid.py`;
-kết quả (ảnh/video đã vẽ khung + nhãn) nằm trong results/pred_<tên file gốc>.
-
-Ví dụ:
-    python Model_hybrid.py                                  # xử lý tất cả file trong test_inputs/
-    python Model_hybrid.py --source anh.jpg                 # 1 ảnh -> results/pred_anh.jpg
-    python Model_hybrid.py --source video.mp4 --out kq.mp4  # video, chọn tên file kết quả
-    python Model_hybrid.py --source 0 --show                # webcam
-
-Nếu có nhiều file model phân loại, xác suất được trung bình (ensemble).
-"""
 import argparse
+import os
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -126,25 +115,54 @@ def run_image(det, src, out, show=False):
         cv2.waitKey(0)
 
 
-def run_video(det, source, out, show=False):
+def to_h264(path):
+    """Nén lại video về H.264: OpenCV chỉ ghi được mp4v (to, nhiều trình phát/trình duyệt không mở được)."""
+    try:
+        import imageio_ffmpeg
+        ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
+    except ImportError:
+        print("⚠️ Chưa cài imageio-ffmpeg nên video giữ codec mp4v, có thể không mở được "
+              "(pip install imageio-ffmpeg).")
+        return
+    tmp = str(path) + '.h264.mp4'
+    r = subprocess.run([ffmpeg, '-y', '-loglevel', 'error', '-i', str(path), '-c:v', 'libx264',
+                        '-pix_fmt', 'yuv420p', '-crf', '26', '-preset', 'veryfast',
+                        '-movflags', '+faststart', tmp])
+    if r.returncode == 0:
+        os.replace(tmp, str(path))
+    else:
+        print("⚠️ Nén H.264 thất bại, giữ video mp4v gốc.")
+
+
+def run_video(det, source, out, show=False, stride=1):
     cap = cv2.VideoCapture(int(source) if str(source).isdigit() else str(source))
     if not cap.isOpened():
         print(f"❌ Không mở được nguồn: {source}")
         return
     writer = None
     if out:
-        fps_in = cap.get(cv2.CAP_PROP_FPS) or 30
+        fps_in = (cap.get(cv2.CAP_PROP_FPS) or 30) / stride  # giữ đúng tốc độ phát khi bỏ khung
         size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
         writer = cv2.VideoWriter(str(out), cv2.VideoWriter_fourcc(*'mp4v'), fps_in, size)
-    n = 0
+    total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) or 0
+    n = i = 0
+    t_start = time.time()
     try:
         while True:
             t0 = time.time()
+            if i % stride:  # bỏ qua khung: grab() không giải mã nên nhanh
+                if not cap.grab():
+                    break
+                i += 1
+                continue
             ok, frame = cap.read()
+            i += 1
             if not ok:
                 break
             frame, _ = det.process(frame)
             n += 1
+            if n % 100 == 0 and total:
+                print(f"  {i}/{total} khung ({100 * i / total:.0f}%), {time.time() - t_start:.0f}s", flush=True)
             draw_fps(frame, 1.0 / max(time.time() - t0, 1e-6))
             if writer:
                 writer.write(frame)
@@ -157,6 +175,8 @@ def run_video(det, source, out, show=False):
         if writer:
             writer.release()
         cv2.destroyAllWindows()
+    if writer and n:
+        to_h264(out)
     print(f"{Path(str(source)).name}: {n} khung hình" + (f" -> {out}" if out else ""))
 
 
@@ -170,6 +190,8 @@ def main(argv=None):
     ap.add_argument('--cnn-conf', type=float, default=0.0, help='bỏ kết quả phân loại dưới ngưỡng này')
     ap.add_argument('--out', default=str(DEFAULT_OUT_DIR),
                     help='thư mục lưu kết quả (mặc định results/); với 1 file có thể là đường dẫn file')
+    ap.add_argument('--stride', type=int, default=1,
+                    help='chỉ xử lý 1 khung mỗi N khung của video (vd video 120fps dùng --stride 4 -> nhanh gấp 4 lần)')
     ap.add_argument('--show', action='store_true', help='hiển thị cửa sổ (cần GUI)')
     args = ap.parse_args(argv)
 
@@ -178,7 +200,7 @@ def main(argv=None):
 
     if args.source.isdigit():  # webcam: chỉ lưu nếu --out là file
         det = HybridDetector(args.yolo, pick_classifiers(args.cnn), args.conf, args.cnn_conf)
-        run_video(det, args.source, out if out.suffix else None, args.show)
+        run_video(det, args.source, out if out.suffix else None, args.show, args.stride)
         return
 
     if src.is_dir():
@@ -197,7 +219,10 @@ def main(argv=None):
     for f in files:
         is_img = f.suffix.lower() in IMAGE_EXTS
         dest = out if single_file_out else out / (f"pred_{f.name}" if is_img else f"pred_{f.stem}.mp4")
-        (run_image if is_img else run_video)(det, f, dest, args.show)
+        if is_img:
+            run_image(det, f, dest, args.show)
+        else:
+            run_video(det, f, dest, args.show, args.stride)
     print(f"✅ Kết quả lưu tại: {out.resolve()}")
 
 
