@@ -1,108 +1,111 @@
 # 🚦 Nhận diện biển báo giao thông Việt Nam (YOLOv8 + CNN)
 
-Pipeline hai bước viết bằng PyTorch:
+## Giới thiệu
+
+Dự án nhận diện biển báo giao thông Việt Nam từ **ảnh** hoặc **video** bằng pipeline hai bước, viết bằng PyTorch:
 
 ```
-Ảnh / Video ──▶ YOLOv8n (phát hiện vị trí biển) ──▶ cắt crop ──▶ CNN + ResNet-18 (phân loại) ──▶ ảnh/video có khung + nhãn
+Ảnh / Video ──▶ YOLOv8n ──▶ cắt từng biển ──▶ CNN + ResNet-18 ──▶ ảnh / video có khung và nhãn
+               (phát hiện)                      (phân loại)
 ```
 
-Phân loại **5 nhóm biển**: `P` (cấm), `W` (nguy hiểm), `R` (hiệu lệnh), `I` (chỉ dẫn), `S` (phụ).
-Dữ liệu: `classification-of-traffic-signs-vn.ndjson` (~24.5 nghìn ảnh 512×512, ~39 nghìn biển, đã chia train/val/test).
+1. **YOLOv8n** tìm vị trí các biển báo trong khung hình.
+2. Mỗi biển được cắt ra và đưa vào **CNN tự xây** (lớp Conv đầu tiên kernel 7×7) và **ResNet-18**. Xác suất của hai mô hình được lấy trung bình (ensemble) để ra nhóm biển cuối cùng.
 
-## 📊 Kết quả
+Dữ liệu huấn luyện lấy từ file `classification-of-traffic-signs-vn.ndjson` (khoảng 24,5 nghìn ảnh, 39 nghìn biển báo).
 
-| Thành phần | Chỉ số (tập test) |
-|---|---|
-| YOLOv8n (10 epoch) | mAP50 **0,940** · mAP50-95 0,776 |
-| Custom CNN (VGG-style, Conv đầu 7×7, 2,5 triệu tham số) | accuracy **99,78%** |
-| ResNet-18 (tự cài, stem Conv 7×7, 11,2 triệu tham số) | accuracy **99,73%** |
-| Ensemble CNN + ResNet-18 | accuracy **99,82%** |
+## Phân loại biển báo
 
-> Accuracy của CNN đo trên crop cắt theo nhãn gốc, nên cao hơn chất lượng thực của cả pipeline (còn phụ thuộc YOLO phát hiện đủ biển). YOLO có recall thấp nhất ở nhóm `R` (0,82).
+Mô hình phân loại biển báo thành **5 nhóm**:
 
-## 📁 Cấu trúc
+| Ký hiệu | Nhóm biển | Đặc điểm nhận dạng |
+|---|---|---|
+| **P** | Biển báo cấm | Hình tròn, viền đỏ |
+| **W** | Biển báo nguy hiểm | Hình tam giác, viền đỏ, nền vàng |
+| **R** | Biển hiệu lệnh | Hình tròn, nền xanh dương |
+| **I** | Biển chỉ dẫn | Hình chữ nhật hoặc vuông, nền xanh dương |
+| **S** | Biển phụ | Hình chữ nhật nhỏ, đi kèm biển chính |
+
+> Ý nghĩa các ký hiệu được suy ra từ quy chuẩn QCVN 41, dataset gốc chỉ ghi chữ cái.
+
+## Cấu trúc
 
 ```
 vietnam-traffic-sign-recognition-main/
-├── classification-of-traffic-signs-vn.ndjson   # nhãn + link ảnh (link hết hạn 28/10/2026)
 ├── Data_Pipeline/
-│   ├── ndjson_to_yolo.py        # tải ảnh, tạo dataset YOLO
-│   └── build_cnn_crops.py       # cắt biển thành dataset phân loại 64x64
+│   ├── ndjson_to_yolo.py            # tải ảnh từ file .ndjson, tạo dataset YOLO
+│   └── build_cnn_crops.py           # cắt từng biển thành ảnh 64x64 cho CNN
 ├── Training/
-│   ├── train_yolo.py            # huấn luyện YOLOv8n
-│   └── cnn-detectsign.ipynb     # huấn luyện CNN + ResNet-18, đánh giá, ensemble
+│   ├── train_yolo.py                # huấn luyện YOLOv8n
+│   └── cnn-detectsign.ipynb         # huấn luyện CNN + ResNet-18, đánh giá, ensemble
 ├── Inference/
-│   ├── Model_hybrid.py          # chạy nhận diện ảnh/video/webcam
-│   ├── best.pt                  # YOLOv8n
-│   ├── best_cnn_traffic_sign.pt
-│   └── best_resnet18_traffic_sign.pt
+│   ├── Model_hybrid.py              # chạy nhận diện ảnh / video / webcam
+│   ├── best.pt                      # YOLOv8n đã train
+│   ├── best_cnn_traffic_sign.pt     # CNN tự xây đã train
+│   └── best_resnet18_traffic_sign.pt  # ResNet-18 đã train
 ├── Utils/
-│   ├── models.py                # CustomCNN, ResNet18, EfficientNetB0 (PyTorch)
-│   └── helper_functions.py      # resize có padding, vẽ khung, bbox...
-├── test_inputs/                 # BỎ ẢNH/VIDEO CẦN TEST VÀO ĐÂY
-└── results/                     # KẾT QUẢ NHẬN DIỆN NẰM Ở ĐÂY
+│   ├── models.py                    # định nghĩa CustomCNN, ResNet18 (PyTorch)
+│   └── helper_functions.py          # resize có padding, vẽ khung, xử lý bbox
+├── test_inputs/                     # ← bỏ ảnh / video cần nhận diện vào đây
+├── results/                         # ← kết quả nhận diện nằm ở đây
+├── requirements.txt
+└── README.md
 ```
 
-Dữ liệu đã xử lý nằm **ngoài repo**, tại `../Data_Processed/{yolo_dataset,cnn_dataset}`.
+## Cài đặt
 
-## ⚙️ Cài đặt
+Yêu cầu Python 3.10 trở lên. Có GPU NVIDIA thì chạy nhanh hơn, nhưng CPU vẫn chạy được.
 
 ```bash
-python3 -m venv .venv && source .venv/bin/activate
-# Có GPU NVIDIA: cài PyTorch bản CUDA trước (đã thử CUDA 12.4)
+# 1. Tạo môi trường ảo
+python3 -m venv .venv
+source .venv/bin/activate
+
+# 2. Nếu có GPU NVIDIA: cài PyTorch bản CUDA trước (bỏ qua nếu chạy bằng CPU)
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124
+
+# 3. Cài các thư viện còn lại
 pip install -r requirements.txt
 ```
 
-## 🚀 Chạy nhận diện (đã có sẵn model)
+Các file model đã có sẵn trong thư mục `Inference/` (`best.pt`, `best_cnn_traffic_sign.pt`, `best_resnet18_traffic_sign.pt`), nên không cần huấn luyện lại để chạy nhận diện.
 
-1. Bỏ ảnh hoặc video vào `test_inputs/`.
-2. Chạy:
-   ```bash
-   python Inference/Model_hybrid.py
-   ```
-3. Xem kết quả trong `results/pred_<tên file gốc>` (ảnh `.jpg/.png`, video `.mp4`). Terminal cũng in danh sách biển và độ tin cậy.
+## Cách chạy
 
-Tuỳ chọn:
-```bash
-python Inference/Model_hybrid.py --source anh.jpg                   # một file -> results/pred_anh.jpg
-python Inference/Model_hybrid.py --source video.mp4 --out kq.mp4    # chọn tên file kết quả
-python Inference/Model_hybrid.py --source thu_muc/ --out ketqua/    # cả thư mục
-python Inference/Model_hybrid.py --conf 0.25                        # nhạy hơn với biển nhỏ
-python Inference/Model_hybrid.py --source 0 --show                  # webcam, nhấn q để thoát
-python Inference/Model_hybrid.py --cnn Inference/best_resnet18_traffic_sign.pt   # chỉ dùng 1 model (mặc định: ensemble)
-```
+**1.** Bỏ ảnh hoặc video cần nhận diện vào thư mục `test_inputs/`
+(ảnh: `.jpg`, `.jpeg`, `.png`, `.bmp`, `.webp` · video: `.mp4`, `.avi`, `.mov`, `.mkv`, `.webm`).
 
-## 🏋️ Huấn luyện lại từ đầu
+**2.** Chạy:
 
 ```bash
-# 1. Tải ảnh (~1,8 GB, ~10 phút) và tạo dataset YOLO
-python Data_Pipeline/ndjson_to_yolo.py
-# 2. Cắt crop cho CNN, rồi xoá thư mục lớp IE (chỉ 17 mẫu, không có val/test)
-python Data_Pipeline/build_cnn_crops.py
-rm -r ../Data_Processed/cnn_dataset/*/4_IE
-# 3. YOLOv8n (~7 phút/epoch trên GTX 1650)
-python Training/train_yolo.py --epochs 10
-# 4. CNN + ResNet-18 (~1,5 giờ trên GTX 1650)
-cd Training && MPLBACKEND=Agg python -m nbconvert --to notebook --execute cnn-detectsign.ipynb
-# 5. Chép model vào Inference/
-cp ../runs/traffic_sign/weights/best.pt ../Inference/best.pt
-cp best_cnn_traffic_sign.pt best_resnet18_traffic_sign.pt ../Inference/
+python Inference/Model_hybrid.py
 ```
 
-Notebook cũng chạy được trên Kaggle/Colab: đặt biến môi trường `DATASET_PATH` hoặc sửa ở cell cấu hình.
+**3.** Xem kết quả trong thư mục `results/`: mỗi file có một bản kết quả tên `pred_<tên file gốc>`, đã vẽ khung và nhãn. Terminal cũng in danh sách biển được phát hiện kèm độ tin cậy.
 
-## 🧠 Kiến trúc
+### Tuỳ chọn
 
-- **YOLOv8n:** phát hiện biển, train 512×512, tắt lật ngang (lật làm đổi nghĩa biển rẽ trái/phải).
-- **Custom CNN:** lớp Conv đầu tiên kernel **7×7**, sau đó 3 khối Conv3×3; mỗi khối có BatchNorm + MaxPool, Dropout, Linear 512 → số lớp.
-- **ResNet-18:** tự cài từng BasicBlock (shortcut), stem **Conv 7×7 stride 2** như bản gốc (bỏ MaxPool vì ảnh chỉ 64×64), train từ đầu.
-- Tiền xử lý crop: resize giữ tỉ lệ + padding đen về 64×64, RGB, chuẩn hoá [0, 1]. Inference dùng đúng cách này.
-- Loss có class weights (nghịch đảo căn bậc hai tần suất) để bù lớp ít mẫu (`S`, `I`).
+```bash
+# Một file bất kỳ
+python Inference/Model_hybrid.py --source anh.jpg
 
-## ⚠️ Hạn chế
+# Chọn tên file kết quả
+python Inference/Model_hybrid.py --source video.mp4 --out ketqua.mp4
 
-- Mới train YOLO 10 epoch; biển rất nhỏ/xa hoặc ảnh mờ có thể bị bỏ sót (nhất là nhóm `R`).
-- Lớp `IE` (22 mẫu) không được phân loại.
-- Nhãn hiển thị là mã nhóm (`P`, `W`...), chưa phải tên biển cụ thể.
-- Ký hiệu P/W/R/I/S được suy từ quy chuẩn QCVN 41; dataset gốc không giải thích nghĩa.
+# Cả một thư mục, lưu kết quả vào thư mục khác
+python Inference/Model_hybrid.py --source thu_muc/ --out ketqua/
+
+# Video nhiều khung hình (vd 120 fps): chỉ xử lý 1 trong mỗi 4 khung cho nhanh gấp 4 lần
+python Inference/Model_hybrid.py --stride 4
+
+# Bắt thêm biển nhỏ / mờ (hạ ngưỡng phát hiện, mặc định 0.4)
+python Inference/Model_hybrid.py --conf 0.25
+
+# Chỉ dùng một mô hình phân loại (mặc định là ensemble CNN + ResNet-18)
+python Inference/Model_hybrid.py --cnn Inference/best_resnet18_traffic_sign.pt
+
+# Webcam (nhấn q để thoát)
+python Inference/Model_hybrid.py --source 0 --show
+```
+
+Video kết quả được nén H.264 nên mở được trên hầu hết trình phát.
