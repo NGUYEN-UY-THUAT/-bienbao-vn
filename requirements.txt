@@ -3,14 +3,11 @@
 #   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124
 torch
 torchvision
-ultralytics
 opencv-python
 numpy
 PyYAML
 tqdm
-imageio-ffmpeg
 scikit-learn
-seaborn
 matplotlib
 ipykernel
 nbconvert
