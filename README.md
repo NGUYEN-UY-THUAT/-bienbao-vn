@@ -18,9 +18,16 @@ Dữ liệu lấy từ file `classification-of-traffic-signs-vn.ndjson`. Từ m�
 
 | Dữ liệu | Mô tả | Link |
 |---|---|---|
+<<<<<<< HEAD
 | Dataset gốc | ~24.5k ảnh đường phố có bounding box (export `.ndjson` từ Ultralytics Platform) | [Ultralytics Platform](https://platform.ultralytics.com/anh-kiet-pham/datasets/classification-of-traffic-signs-vn) |
 
 Từ dataset gốc, chạy 2 script trong `Data_Pipeline/` (xem mục *Các bước thực hiện*) để tạo bộ 35.550 ảnh biển báo 32x32.
+=======
+| Dataset gốc | ~24.5k ảnh đường phố có bounding box (export `.ndjson` từ Ultralytics Platform) | [TODO: link dataset gốc](#) |
+| `cnn_dataset_32.zip` | 35.550 ảnh biển báo đã cắt 32x32, chia sẵn train/val/test (~74 MB) | [TODO: link Google Drive](#) |
+
+Chỉ cần tải `cnn_dataset_32.zip` là train được ngay, không phải chạy lại bước chuẩn bị dữ liệu.
+>>>>>>> a7f1b9edaaeb1fae78149ed37ed06d9267fa7fbd
 
 ## Phân loại biển báo
 
@@ -54,13 +61,25 @@ vietnam-traffic-sign-recognition-main/
 
 ## Kết quả
 
+<<<<<<< HEAD
 Cả 2 model được đánh giá trên cùng tập test gồm 2.259 ảnh.
+=======
+Cả 2 model được đánh giá trên cùng tập test gồm 2.259 ảnh (Colab, GPU T4).
+>>>>>>> a7f1b9edaaeb1fae78149ed37ed06d9267fa7fbd
 
 | Model | Số tham số | Dung lượng (MB) | Thời gian train (phút) | Thời gian dự đoán (ms/ảnh) | Test accuracy (%) | Macro F1 (%) |
 |---|---|---|---|---|---|---|
 | ResNet-18 pretrained | 11,309,125 | 45.33 | 11.66 | 2.94 | 99.47 | 97.61 |
 | CNN tự xây | 1,149,189 | 4.61 | 2.92 | 0.43 | 99.47 | **98.77** |
 
+<<<<<<< HEAD
+=======
+**Nhận xét:**
+- Hai model có test accuracy bằng nhau, nhưng CNN tự xây **nhỏ hơn ~10 lần**, train **nhanh hơn ~4 lần**, dự đoán **nhanh hơn ~7 lần** và có macro F1 cao hơn.
+- Với ảnh 32x32, ResNet-18 giảm kích thước rất nhanh (conv 7x7 stride 2 + MaxPool ở đầu mạng, cuối cùng còn 1x1), nên kiến trúc lớn không tận dụng được hết sức mạnh.
+- Điểm yếu của ResNet-18 nằm ở lớp **S (biển phụ)**: precision chỉ 0.85, do một số biển W bị đoán nhầm thành S. CNN tự xây ổn định hơn ở các lớp ít ảnh (S, I, R).
+- Dữ liệu lệch lớp nặng (P ~15k ảnh, S chỉ 637 ảnh) nên **macro F1** phản ánh chất lượng model tốt hơn accuracy.
+>>>>>>> a7f1b9edaaeb1fae78149ed37ed06d9267fa7fbd
 
 ### Precision / Recall / F1 từng lớp
 
@@ -113,22 +132,10 @@ cd ../Data_Processed && zip -qr cnn_dataset_32.zip cnn_dataset_32
 
 > Link ảnh trong file `.ndjson` có hạn sử dụng. Khi link hết hạn, cần export lại file `.ndjson` từ Ultralytics Platform.
 
-### 2. Train trên Google Colab
-
-1. Upload `cnn_dataset_32.zip` (~74 MB) lên Google Drive, vào thư mục `MyDrive/bienbao/`.
-2. Mở notebook trên Colab và chọn **Runtime → Change runtime type → T4 GPU**.
-3. Chạy lần lượt `Huong1_ResNet18_pretrained.ipynb`, `Huong2_CNN_tu_xay.ipynb` và cuối cùng `So_sanh_2_huong.ipynb`.
-
-Kết quả được lưu ở `MyDrive/bienbao/ket_qua/`:
-- `resnet18_pretrained.pth`, `custom_cnn.pth`: model đã train
-- `*_history.json`: loss/accuracy từng epoch, thời gian train, test accuracy
-- `hinh_slide/`: biểu đồ quá trình train, biểu đồ so sánh các chỉ số, confusion matrix và các ảnh bị đoán sai
-
-Notebook `So_sanh_2_huong.ipynb` còn in sẵn một **bảng markdown** để chép vào slide, gồm số tham số, dung lượng, thời gian train, thời gian dự đoán, test accuracy và macro F1.
 
 ### 3. Dự đoán ảnh mới (trên máy)
 
-Chép 2 file `.pth` vào `Inference/`, bỏ ảnh biển báo đã cắt vào `test_inputs/`, rồi chạy:
+Bỏ ảnh biển báo đã cắt vào `test_inputs/`, rồi chạy:
 
 ```bash
 python Inference/predict.py              # hoặc: python Inference/predict.py anh.png
