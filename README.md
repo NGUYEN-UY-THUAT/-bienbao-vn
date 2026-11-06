@@ -18,7 +18,6 @@ Dữ liệu lấy từ file `classification-of-traffic-signs-vn.ndjson`. Từ m�
 
 | Dữ liệu | Mô tả | Link |
 |---|---|---|
-<<<<<<< HEAD
 | Dataset gốc | ~24.5k ảnh đường phố có bounding box (export `.ndjson` từ Ultralytics Platform) | [Ultralytics Platform](https://platform.ultralytics.com/anh-kiet-pham/datasets/classification-of-traffic-signs-vn) |
 
 Từ dataset gốc, chạy 2 script trong `Data_Pipeline/` (xem mục *Các bước thực hiện*) để tạo bộ 35.550 ảnh biển báo 32x32.
