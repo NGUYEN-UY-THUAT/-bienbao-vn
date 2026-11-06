@@ -119,22 +119,10 @@ cd ../Data_Processed && zip -qr cnn_dataset_32.zip cnn_dataset_32
 
 > Link ảnh trong file `.ndjson` có hạn sử dụng. Khi link hết hạn, cần export lại file `.ndjson` từ Ultralytics Platform.
 
-### 2. Train trên Google Colab
-
-1. Upload `cnn_dataset_32.zip` (~74 MB) lên Google Drive, vào thư mục `MyDrive/bienbao/`.
-2. Mở notebook trên Colab và chọn **Runtime → Change runtime type → T4 GPU**.
-3. Chạy lần lượt `Huong1_ResNet18_pretrained.ipynb`, `Huong2_CNN_tu_xay.ipynb` và cuối cùng `So_sanh_2_huong.ipynb`.
-
-Kết quả được lưu ở `MyDrive/bienbao/ket_qua/`:
-- `resnet18_pretrained.pth`, `custom_cnn.pth`: model đã train
-- `*_history.json`: loss/accuracy từng epoch, thời gian train, test accuracy
-- `hinh_slide/`: biểu đồ quá trình train, biểu đồ so sánh các chỉ số, confusion matrix và các ảnh bị đoán sai
-
-Notebook `So_sanh_2_huong.ipynb` còn in sẵn một **bảng markdown** để chép vào slide, gồm số tham số, dung lượng, thời gian train, thời gian dự đoán, test accuracy và macro F1.
 
 ### 3. Dự đoán ảnh mới (trên máy)
 
-Chép 2 file `.pth` vào `Inference/`, bỏ ảnh biển báo đã cắt vào `test_inputs/`, rồi chạy:
+Bỏ ảnh biển báo đã cắt vào `test_inputs/`, rồi chạy:
 
 ```bash
 python Inference/predict.py              # hoặc: python Inference/predict.py anh.png
